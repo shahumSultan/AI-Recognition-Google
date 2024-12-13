@@ -14,7 +14,6 @@ st.title("AI Recongition")
 
 
 with st.sidebar:
-    st.write("Sidebar")
     uploaded_file = st.file_uploader(label="Upload CSV", type=['csv'], accept_multiple_files=False)
 
 if uploaded_file:
