@@ -2,22 +2,24 @@ import pandas as pd
 import requests
 import os
 import base64
-from PIL import Image
-from io import BytesIO
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
 client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 def full_address(uploaded_file):
     data = pd.read_csv(uploaded_file)
-    data['combined_address'] = data.apply(lambda row: ', '.join(row.astype(str)), axis=1)
+    data['combined_address'] = data.apply(
+        lambda row: ', '.join(row.astype(str)), axis=1)
     return data
 
 
-def fetch_street_view_image(location, api_key, save_path=None):
+def fetch_street_view_image(location, save_path=None):
     """
     Fetches an image from Google Street View API and optionally saves it as a file.
     
@@ -32,8 +34,9 @@ def fetch_street_view_image(location, api_key, save_path=None):
     base_url = "https://maps.googleapis.com/maps/api/streetview"
     params = {
         "location": location,
-        "size": "400x400",
-        "key": api_key
+        "size": "600x600",
+        "fov": 70,
+        "key": GOOGLE_API_KEY
     }
     response = requests.get(base_url, params=params)
     image_paths = []
@@ -54,51 +57,22 @@ def fetch_street_view_image(location, api_key, save_path=None):
     #         f"Failed to fetch image for '{location}'. Status code: {response.status_code}")
 
 
-def analyze_images_with_openai(image_paths):
-    """
-    Analyze images using OpenAI's GPT-4V model with the Driving for Dollars scoring system
-    """
-    prompt = """
-    Analyze this property image using the Driving for Dollars scoring system (100 points total).
-    Provide detailed analysis and scoring for each category:
-
-    1. Siding Condition (0-25 points)
-    - Assess: damage, cracks, peeling paint, discoloration, missing panels
-    - Provide specific observations and point deductions
-    
-    2. Landscape and Driveway Condition (0-25 points)
-    - Assess: lawn condition, plant health, driveway state, overall cleanliness
-    - Provide specific observations and point deductions
-    
-    3. Windows Condition (0-25 points)
-    - Assess: damage, cleanliness, frame condition, window type
-    - Provide specific observations and point deductions
-    
-    4. Roof Condition (0-25 points)
-    - Assess: missing shingles, damage, moss/algae, age indicators
-    - Provide specific observations and point deductions
-
-    For each category:
-    - Start at 25 points
-    - Detail specific issues found
-    - Show point deductions
-    - Give final category score
-    
-    End with:
-    - Total score out of 100
-    - Brief overall assessment
-    - Comparison to neighborhood standards (if visible)
-    """
+def analyze_images_with_openai(image_paths, prompt_template=None):
+    # Set the default prompt if none is provided
+    if prompt_template is None:
+        prompt = """
+        Using roof, siding, landscaping, driveway and windows as the key factors. Grade this home from 0-10, 10 being perfect.
+        """
+    else:
+        prompt = prompt_template
 
     analyses = []
     for image_path in image_paths:
         with open(image_path, "rb") as image_file:
             # Convert image to Base64
             image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
-            # Ensure correct MIME type
-            mime_type = "png" if image_path.endswith(".png") else "jpeg"
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "user",
