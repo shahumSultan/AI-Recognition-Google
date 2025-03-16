@@ -17,36 +17,13 @@ OUTPUT_DIR = "images"
     # prompt = None if not prompt_template.strip() else prompt_template
 
 # Main Page with Dropdown
-st.title("AI Recognition")
+st.title("House Insurance Evaluation")
 selected_option = st.text_input("Enter an address to search for")
 bot_analysis_btn = st.button("Analyze")
 if selected_option and bot_analysis_btn:
     prompt = (
-        "You are an expert in property insurance evaluation. Analyze the given images of a home using key factors: "
-        "roof, siding, landscaping, driveway, and windows. Compare both images to assess the overall condition, "
-        "potential risks, and insurability of the property. \n\n"
-
-        "🏡 **Evaluation Criteria:** \n"
-        "1 **Roof (2 points)** - Check for visible wear, missing shingles, or damage that may lead to leaks or structural issues. \n"
-        "2 **Siding (2 points)** - Assess the condition of the exterior walls for cracks, moisture damage, or peeling paint. \n"
-        "3 **Landscaping (2 points)** - Determine if overgrown trees, poor drainage, or uneven terrain could increase risks. \n"
-        "4 **Driveway (2 points)** - Look for cracks, potholes, or other hazards that could affect safety and liability coverage. \n"
-        "5 **Windows (2 points)** - Inspect for broken, outdated, or poorly sealed windows that might impact energy efficiency or security. \n\n"
-
-        "📝 **Final Report:** \n"
-        "✅ Compare the two images and highlight any differences in condition. \n"
-        "✅ Identify any visible risk factors that could affect home insurance premiums. \n"
-        "✅ Provide a final **Home Insurance Score (0-10)**, summarizing how insurable the home is. \n"
-        "✅ Suggest possible improvements to increase the property's insurability and lower insurance costs. \n\n"
-
-        "**Example Response:** \n"
-        "🏡 **Final Home Insurance Score: 7/10** \n"
-        "🔹 The roof appears well-maintained, but minor wear is visible. (1.5/2) \n"
-        "🔹 Siding is in good condition, but slight discoloration is noticeable. (1.5/2) \n"
-        "🔹 Landscaping shows potential drainage issues near the foundation. (1/2) \n"
-        "🔹 The driveway has a few cracks that may pose minor risks. (1/2) \n"
-        "🔹 Windows seem intact but could be upgraded for better insulation. (1/2) \n"
-        "💡 Suggested Improvements: Seal driveway cracks, improve drainage near the foundation, and consider energy-efficient windows."
+        "You are an expert in property insurance evaluation. Analyze the given images of a home based on key factors such as roof, siding, landscaping, driveway, and windows. "
+        "Provide a final **Home Insurance Score (0-10)** based on the overall condition and potential risks affecting insurability."
     )
     google_image = fetch_street_view_image(selected_option, OUTPUT_DIR)
     lat, long = getLatLongGoogle(selected_option)["results"][0]["geometry"]["location"]["lat"], getLatLongGoogle(selected_option)["results"][0]["geometry"]["location"]["lng"]
