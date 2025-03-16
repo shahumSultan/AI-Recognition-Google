@@ -35,6 +35,7 @@ def fetch_street_view_image(location, save_path=None):
     response = requests.get(base_url, params=params)
     image_paths = []
     if response.status_code == 200:
+        os.makedirs(save_path, exist_ok=True)
         image_path = os.path.join(save_path, f"front_view.jpeg")
         with open(image_path, 'wb') as f:
             f.write(response.content)
@@ -66,6 +67,7 @@ def getGoogleSatImage(lat, long, save_path=None):
         response = requests.get(url, params=params)
         image_paths =[]
         if response.status_code == 200:
+            os.makedirs(save_path, exist_ok=True)
             image_path = os.path.join(save_path, f"top_view.jpeg")
             with open(image_path, 'wb') as f:
                 f.write(response.content)
