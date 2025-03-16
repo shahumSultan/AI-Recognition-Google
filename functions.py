@@ -12,12 +12,6 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
-def full_address(uploaded_file):
-    data = pd.read_csv(uploaded_file)
-    data['combined_address'] = data.apply(
-        lambda row: ', '.join(row.astype(str)), axis=1)
-    return data
-
 
 def fetch_street_view_image(location, save_path=None):
     """
@@ -47,15 +41,40 @@ def fetch_street_view_image(location, save_path=None):
         image_paths.append(image_path)
 
     return image_paths
-    # if response.status_code == 200:
-    #     image = Image.open(BytesIO(response.content))
-    #     return image
-    #     # image.save(save_path, "JPEG")
-    #     # print(f"Image saved: {save_path}")
-    # else:
-    #     print(
-    #         f"Failed to fetch image for '{location}'. Status code: {response.status_code}")
+    
 
+# FUNCTION FOR GETTING LAT LONG FROM ADDDRESS
+def getLatLongGoogle(locationAddress):
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    response = requests.get(
+        url, params={"address": locationAddress, "key": GOOGLE_API_KEY})
+    if response.status_code == 200:
+        return response.json()
+
+
+# FUNCTION FOR GETTING GOOGLE SAT IMAGE FROM THE LAT LONG
+def getGoogleSatImage(lat, long, save_path=None):
+    url = "https://maps.googleapis.com/maps/api/staticmap"
+    params = {
+        "center": f"{lat},{long}",
+        "zoom": 21,
+        "size": "600x600",
+        "maptype": "satellite",
+        "key": GOOGLE_API_KEY
+    }
+    try:
+        response = requests.get(url, params=params)
+        image_paths =[]
+        if response.status_code == 200:
+            image_path = os.path.join(save_path, f"top_view.jpeg")
+            with open(image_path, 'wb') as f:
+                f.write(response.content)
+        image_paths.append(image_path)
+        return image_paths
+    except Exception as e:
+        print("ERROR : ", e)
+        return e
+    
 
 def analyze_images_with_openai(image_paths, prompt_template=None):
     # Set the default prompt if none is provided

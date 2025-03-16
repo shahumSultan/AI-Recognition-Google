@@ -1,82 +1,66 @@
 import streamlit as st
 import os
-from functions import full_address, analyze_images_with_openai, fetch_street_view_image
+from functions import analyze_images_with_openai, fetch_street_view_image, getLatLongGoogle, getGoogleSatImage
 
-st.set_page_config(page_title='AI Recognition',
-                   layout='centered', initial_sidebar_state='expanded')
+st.set_page_config(page_title='AI Recognition', layout='centered')
 
 OUTPUT_DIR = "images"
 
-# Initialize session state
-if "file_uploaded" not in st.session_state:
-    st.session_state.file_uploaded = False
-if "analysis_done" not in st.session_state:
-    st.session_state.analysis_done = False
-if "csv_data" not in st.session_state:
-    st.session_state.csv_data = None
-
-# Sidebar for buttons
-st.sidebar.title("Options")
-
-# File uploader
-uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type="csv")
-
 # Check if a file is uploaded
-if uploaded_file:
-    st.session_state.file_uploaded = True
-    st.sidebar.success("File uploaded successfully!")
-    dataframe = full_address(uploaded_file)
-    prompt_template = st.text_area("Enter a custom prompt for the AI model",
-                                   placeholder="Using roof, siding, landscaping, driveway and windows as the key factors. Grade this home from 0-10, 10 being perfect.")
+# if uploaded_file:
+#     st.session_state.file_uploaded = True
+#     st.sidebar.success("File uploaded successfully!")
+#     dataframe = full_address(uploaded_file)
+#     prompt_template = st.text_area("Enter a custom prompt for the AI model",
+#                                    placeholder="Using roof, siding, landscaping, driveway and windows as the key factors. Grade this home from 0-10, 10 being perfect.")
 
-    prompt = None if not prompt_template.strip() else prompt_template
-
-# Complete Analysis Button
-# if st.sidebar.button("Complete Analysis", disabled=not st.session_state.file_uploaded):
-#     if st.session_state.file_uploaded:
-#         st.write("Starting analysis...")
-#         progress_text = "Operation in progress. Please wait."
-#         my_bar = st.progress(0, text=f"{progress_text} 0%")
-
-#         total_rows = len(dataframe)
-#         completed_rows = 0
-
-#         for index, row in dataframe.iterrows():
-#             try:
-#                 image_path = fetch_street_view_image(row['combined_address'], OUTPUT_DIR)
-#                 analysis = analyze_images_with_openai(image_path, prompt)
-#                 dataframe.at[index, "OpenAI_Analysis"] = analysis
-#             except Exception as e:
-#                 st.error(f"Error processing the reques: {e}")
-#                 dataframe.at[index, "OpenAI_Analysis"] = f"{str(e)}"
-
-#             completed_rows += 1
-#             progress_percentage = int((completed_rows / total_rows) * 100)
-#             my_bar.progress(completed_rows / total_rows,
-#                             text=f"{progress_text} {progress_percentage}%")
-
-#         # Save analysis data for download
-#         st.session_state.csv_data = dataframe.to_csv(
-#             index=False).encode('utf-8')
-#         st.session_state.analysis_done = True
-#         st.success("Analysis completed!")
-
-# # Download Button
-# st.sidebar.download_button(
-#     label="Download Button",
-#     data=st.session_state.csv_data if st.session_state.analysis_done else b"",
-#     file_name="analysis_result.csv",
-#     mime="text/csv",
-#     disabled=not st.session_state.analysis_done
-# )
+    # prompt = None if not prompt_template.strip() else prompt_template
 
 # Main Page with Dropdown
 st.title("AI Recognition")
-if uploaded_file:
-    selected_option = st.selectbox(
-        "Choose an option", options=dataframe["combined_address"], index=None)
-    st.write("here")
+selected_option = st.text_input("Enter an address to search for")
+bot_analysis_btn = st.button("Analyze")
+if selected_option and bot_analysis_btn:
+    prompt = (
+        "You are an expert in property insurance evaluation. Analyze the given images of a home using key factors: "
+        "roof, siding, landscaping, driveway, and windows. Compare both images to assess the overall condition, "
+        "potential risks, and insurability of the property. \n\n"
+
+        "🏡 **Evaluation Criteria:** \n"
+        "1 **Roof (2 points)** - Check for visible wear, missing shingles, or damage that may lead to leaks or structural issues. \n"
+        "2 **Siding (2 points)** - Assess the condition of the exterior walls for cracks, moisture damage, or peeling paint. \n"
+        "3 **Landscaping (2 points)** - Determine if overgrown trees, poor drainage, or uneven terrain could increase risks. \n"
+        "4 **Driveway (2 points)** - Look for cracks, potholes, or other hazards that could affect safety and liability coverage. \n"
+        "5 **Windows (2 points)** - Inspect for broken, outdated, or poorly sealed windows that might impact energy efficiency or security. \n\n"
+
+        "📝 **Final Report:** \n"
+        "✅ Compare the two images and highlight any differences in condition. \n"
+        "✅ Identify any visible risk factors that could affect home insurance premiums. \n"
+        "✅ Provide a final **Home Insurance Score (0-10)**, summarizing how insurable the home is. \n"
+        "✅ Suggest possible improvements to increase the property's insurability and lower insurance costs. \n\n"
+
+        "**Example Response:** \n"
+        "🏡 **Final Home Insurance Score: 7/10** \n"
+        "🔹 The roof appears well-maintained, but minor wear is visible. (1.5/2) \n"
+        "🔹 Siding is in good condition, but slight discoloration is noticeable. (1.5/2) \n"
+        "🔹 Landscaping shows potential drainage issues near the foundation. (1/2) \n"
+        "🔹 The driveway has a few cracks that may pose minor risks. (1/2) \n"
+        "🔹 Windows seem intact but could be upgraded for better insulation. (1/2) \n"
+        "💡 Suggested Improvements: Seal driveway cracks, improve drainage near the foundation, and consider energy-efficient windows."
+    )
     google_image = fetch_street_view_image(selected_option, OUTPUT_DIR)
-    bot_response = analyze_images_with_openai(google_image, prompt)
-    st.image(google_image)
+    lat, long = getLatLongGoogle(selected_option)["results"][0]["geometry"]["location"]["lat"], getLatLongGoogle(selected_option)["results"][0]["geometry"]["location"]["lng"]
+    google_main_image = getGoogleSatImage(lat, long, OUTPUT_DIR)
+    image_paths = ["images/front_view.jpeg", "images/top_view.jpeg"]
+    bot_response = analyze_images_with_openai(image_paths, prompt)
+    img1, img2 = st.columns(2)
+    with img1:
+        st.image(google_main_image)
+    with img2:
+        st.image(google_image)
+    
     st.write(bot_response)
+
+# 774 W BEVERLY DR, CLOVIS, 93612, CA
+# 1332 ADLER DR, CLOVIS, 93612, CA
+# 609 W INDIANAPOLIS AVE, CLOVIS, 93612, CA
